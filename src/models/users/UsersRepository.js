@@ -1,42 +1,50 @@
+import pg from "../../database/index.js";
+
+
+
 export default class UsersRepository {
   constructor() {
-    this.users = [];
+    this.pg = pg;
   }
 
-  getUsers() {
-    return this.users;
+   async getUsers() {
+    const allUsers = await this.pg.manyOrNone("SELECT * from users");
+    console.log(allUsers)
+    return allUsers;
   }
 
-  getUserById(id) {
-    const user = this.users.find((user) => user.id === id);
+  async getUserById(id) {
+   const user = await this.pg.oneOrNone(
+    "SELECT * FROM users WHERE id = $1 ", id
+    );
+   
+   
+  }
+
+   async getUserByEmail(email) {
+    const user = await this.pg.oneOrNone("SELECT * FROM users WHERE email = $1", email);
     return user;
   }
 
-  getUserByEmail(email) {
-    const user = this.users.find((user) => user.email === email);
-    return user;
+  async createUser(user) {
+    await this.pg.nome(
+      "INSERT INTO users (id, name, email, password) VALUES ($1, $2, $3, $4)", [ user.name, user.email, user.password]);
+      return user;
+    
+    
   }
-
-  createUser(user) {
-    this.users.push(user);
-    return user;
-  }
-
-  updateUser(id, name, email, password) {
-    const user = this.getUserById(id);
+  async  updateUser(id, name, email, password) {
+    const user = await this.getUserById(id);
 
     if (!user) {
       return null;
     }
+    const userUpdate = await this.pg.oneOrNone("UPDATE users SET name = $1, email = $2, password = $3 WHERE id = $4 RETURNING *", [name, email, password, id]);
 
-    user.name = name;
-    user.email = email;
-    user.password = password;
-
-    return user;
+    return userUpdate;
   }
 
-  deleteUser(id) {
-    this.users = this.users.filter((user) => user.id !== id);
+  async deleteUser(id) {
+   await this.pg.none("DELETE FROM users WHERE id = $1", id);
   }
 }
